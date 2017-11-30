@@ -1,4 +1,4 @@
-boto==2.38.0
+boto==2.48.0
 paramiko==1.15.2
 future
 

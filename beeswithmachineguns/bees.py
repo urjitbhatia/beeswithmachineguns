@@ -398,18 +398,27 @@ def _attack(params):
     print('Bee %i is joining the swarm.' % params['i'])
 
     try:
+        # Support using local ssh config
+        config = paramiko.SSHConfig()
+        home = os.path.expanduser("~")
+        config.parse(open(home + '/.ssh/config'))
+
+        target = config.lookup(params['instance_name'])
+
         client = paramiko.SSHClient()
+        # Load host keys
+        client.load_system_host_keys()
         client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
         pem_path = params.get('key_name') and _get_pem_path(params['key_name']) or None
         if not os.path.isfile(pem_path):
             client.load_system_host_keys()
-            client.connect(params['instance_name'], username=params['username'])
+            client.connect(params['instance_ip'], username=params['username'])
         else:
             client.connect(
-                params['instance_name'],
+                params['instance_ip'],
                 username=params['username'],
-                key_filename=pem_path)
+                key_filename=target['identityfile'])
 
         print('Bee %i is firing her machine gun. Bang bang!' % params['i'])
 
@@ -754,6 +763,7 @@ def attack(url, n, c, **options):
         params.append({
             'i': i,
             'instance_id': instance.id,
+            'instance_ip': instance.private_ip_address if len(instance.ip_address) == 0 else instance.ip_address,
             'instance_name': instance.private_dns_name if instance.public_dns_name == "" else instance.public_dns_name,
             'url': urls[i % url_count],
             'concurrent_requests': connections_per_instance,
